@@ -37,8 +37,8 @@ for itr in range(10):
 #%%
 max_main_loop = 1             # number of main loop to calculate mean/variance of the svm accuracy of the proposed algorithm -> need for plot
 accuracy_method = 'F1'        # method to calculate svm accuracy {'F1', 'MCC', 'Simple'} are available. Default is F1-score
-max_itr = 1000                 # maximum number of samples
-report_frq = 50               # frequency to test svm accuracy and print
+max_itr = 20                 # maximum number of samples
+report_frq = 10               # frequency to test svm accuracy and print
 
 # Variable bound
 bounds = []
