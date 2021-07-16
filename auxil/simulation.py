@@ -1,5 +1,8 @@
 # %%
 import numpy as np
+from auxil.awsauxil import send_datatos3
+import boto3
+import logging
 
 class Simulation():
     '''
@@ -8,30 +11,24 @@ class Simulation():
     def __init__(self, x, **kwargs):
         self.result = None
         self.x = x
-        with open('./data/input.txt', 'w') as f:
+        with open('input.txt', 'w') as f:
             f.write(str(x))
 
 
     def run(self):
         # use data for simulation
 #        data = self.x 
-        self.send_data()
+        send_datatos3('input.txt', 'testbucketjoonjae', 'input.txt')
         
         result_text = self.retrieve_result()
         result = self.postprocessing_result(result_text)        
+
         self.result = result
-
-
-    def send_data(self):
-        # send text file to server for simulation
-        # adequate formating should be known in the future
-        print('Data is sent')
-        pass
 
 
     def retrieve_result(self):
         # read result text file from server
-        with open('./data/output.txt', 'r') as f:
+        with open('output.txt', 'r') as f:
             lines = f.read()
         return lines
 

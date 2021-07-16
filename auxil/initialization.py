@@ -2,7 +2,7 @@
 from numpy.core.numeric import full
 from pyDOE2 import lhs, ff2n, bbdesign, fullfact
 import numpy as np
-from auxil.auxilfunc import check_class
+#from auxil.auxilfunc import check_class
 import sobol
 
 class Initialization():
@@ -51,7 +51,7 @@ class Initialization():
             
         '''
         self.method = method
-        y = []
+#        y = []
 
         def corner_addition(X, dim):
             ''' 
@@ -86,10 +86,10 @@ class Initialization():
         else:
             raise ValueError('No such method')
 
-        for _X in X:
-            if self.case == 'benchmark':
-                y.append(check_class(_X, case = self.case, condition=self.condition))
-            else:
-                y.append(check_class(_X, case = self.case))
+        # for _X in X:
+        #     if self.case == 'benchmark':
+        #         y.append(check_class(_X, case = self.case, condition=self.condition))
+        #     else:
+        #         y.append(check_class(_X, case = self.case))
 
-        return X, y
+        return X

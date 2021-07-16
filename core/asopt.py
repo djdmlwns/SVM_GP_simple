@@ -15,8 +15,8 @@ from copy import deepcopy
 #############################################################################################################
 class ActiveSampling():
     def __init__(self, X_initial, y_initial, SVM_classifier, GP_regressor, bounds, 
-                max_itr = 300, verbose = True, C1 = 100, p_check = 0.1, threshold = 1, n_optimization = 10, case = 'benchmark', 
-                report_frq = 5, accuracy_method = 'F1', C1_schedule = None, acq_type = 'f1', log = False, cal_norm = False, **kwargs):
+                max_itr = 1, verbose = True, C1 = 1, p_check = 0.0, threshold = 1, n_optimization = 10, case = 'benchmark', 
+                report_frq = 1, accuracy_method = 'F1', C1_schedule = None, acq_type = 'f1', log = False, cal_norm = False, **kwargs):
 
         '''
         Input: 
@@ -94,7 +94,7 @@ class ActiveSampling():
             else:
                 self.condition = kwargs['condition']
 
-    def train(self):
+    def find(self):
         '''
         Train SVM and GP to choose next optimal sample, and repeat training until the maximum iteration
         '''
@@ -178,6 +178,9 @@ class ActiveSampling():
                                 print('Iteration {0} : Added point x value is {1} and function value is {2:2.2E}\n'.format(iter, new_x, new_fun))
                         break
 
+                # Save next optimal point
+                self.x_new = new_x
+
                 # Test svm and append score and iteration number to list
                 # Only possible for benchmark function (Not possible for simulation)
                 if self.case == 'benchmark':
@@ -195,7 +198,7 @@ class ActiveSampling():
                         self.score_list.append(score)
                         self.num_iter_list.append(iter)
 
-        return None 
+        return self.x_new 
 
     def acquisition_function(self, x):
         ''' Objective function to be minimized '''            
