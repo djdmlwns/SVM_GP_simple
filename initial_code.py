@@ -38,7 +38,6 @@ X = Initializer.sample(sample_method)
 np.save('X_initial_array.npy', X)
 
 
-
 # %%
 
 send_datatos3('X_initial_array.npy', 'testbucketjoonjae', 'initial_input/X_initial_array.npy')
