@@ -1,7 +1,7 @@
 import boto3
 from auxil.testfunc import Hosaki2d
 import numpy as np
-
+from auxil.awsauxil import senddatatos3
 
 condition = lambda x: Hosaki2d(x) <= -0.5
 
@@ -18,4 +18,6 @@ for _x in X:
     y.append(1 if condition(_x) else -1)
 
 y_array = np.array(y)
-y_array.save('y_initial_array.npy', y_array)
+np.save('y_initial_array.npy', y_array)
+
+

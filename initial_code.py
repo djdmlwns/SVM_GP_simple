@@ -9,11 +9,12 @@ from auxil.initialization import Initialization
 #from auxil.samplesvm import Sampling_based_SVM
 from auxil.awsauxil import send_datatos3
 #from plotting.plots import progress_plot, required_sample, plot_svm_boundary, plot_heatmap_uncertainty
+import sys
 
 # %%
 # Benchmark Function Test Main script
 case = 'benchmark' # case can be 'benchmark' or 'simulation'
-dim = 2 # number of features for benchmark function
+dim = int(sys.argv[1]) # number of features for benchmark function
 sample_method = 'sobol'
 # Set condition for feasible region  
 # This is only needed for benchmark function (case = 'benchmark')
@@ -21,7 +22,7 @@ sample_method = 'sobol'
 condition = lambda x: Hosaki2d(x) <= -0.5
 
 # Initial samples
-num_samples = 2**4    # number of initial samples
+num_samples = int(sys.argv[2])    # number of initial samples
 Initializer = Initialization(dim, num_samples, case = case, condition = condition) # Class for initial sampling
 
 # Check data feasibility
