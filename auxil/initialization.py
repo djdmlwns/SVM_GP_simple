@@ -86,10 +86,10 @@ class Initialization():
         else:
             raise ValueError('No such method')
 
-        for _X in X:
-            if self.case == 'benchmark':
+        if self.case == 'benchmark':
+            for _X in X:
                 y.append(check_class(_X, case = self.case, condition=self.condition))
-            else:
-                y.append(check_class(_X, case = self.case))
+        else:
+            y = check_class(X, case = self.case) 
 
         return X, y

@@ -167,6 +167,7 @@ class ActiveSampling():
                             self.y.append(check_class(new_x, self.case, condition = self.condition))
                         else:
                             # check with simulation
+                            print(new_x)
                             self.y.append(check_class(new_x, self.case))
 
                         # Print

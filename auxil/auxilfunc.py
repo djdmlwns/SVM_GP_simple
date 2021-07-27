@@ -26,9 +26,15 @@ def check_class(x, case, **kwargs):
             condition = kwargs['condition']
 
     def run_simulation(x):
+        # If simulation is selected, x can be m by n matrix for parallel computation
         sim = Simulation(x)
-        sim.run()
-        return sim.result
+        y = sim.run()
+
+        if len(y) == 1:
+            return y[0]
+        # directly get the list of y
+        else:    
+            return y
 
     def run_benchmark(x, condition):
         if condition(x): 

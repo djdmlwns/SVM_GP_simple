@@ -11,7 +11,7 @@ from plotting.plots import progress_plot, required_sample, plot_svm_boundary, pl
 
 # %%
 # Benchmark Function Test Main script
-case = 'benchmark' # case can be 'benchmark' or 'simulation'
+case = 'simulation' # case can be 'benchmark' or 'simulation'
 dim = 2 # number of features for benchmark function
 sample_method = 'sobol'
 # Set condition for feasible region  
@@ -20,25 +20,36 @@ sample_method = 'sobol'
 condition = lambda x: Hosaki2d(x) <= -0.5
 
 # Initial samples
-num_samples = 2**4    # number of initial samples
-Initializer = Initialization(dim, num_samples, case = case, condition = condition) # Class for initial sampling
+num_samples = 3    # number of initial samples
+# Initializer = Initialization(dim, num_samples, case = case, condition = condition) # Class for initial sampling
 
 # Check data feasibility
 # Raise ValueError if only one classification (e.g., only 1 and no -1) is included in the initial sample
 # Sampling again if the error is raised
-for itr in range(10):
-    try: 
-        X, y = Initializer.sample(sample_method)
-        check_data_feasible(y) 
-        break
-    except ValueError:
-        print('Need to resample') 
+
+# for itr in range(1):
+#     try: 
+#         X, y = Initializer.sample(sample_method)
+#         check_data_feasible(y) 
+#         break
+#     except ValueError:
+#         print('Need to resample') 
+
+
+# X, y = Initializer.sample(sample_method)
 
 #%%
+X = np.array([[0.5 , 0.5 ],
+       [0.75, 0.25],
+       [0.25, 0.75]])
+
+y = [1, 1, -1]
+
+
 max_main_loop = 1             # number of main loop to calculate mean/variance of the svm accuracy of the proposed algorithm -> need for plot
 accuracy_method = 'F1'        # method to calculate svm accuracy {'F1', 'MCC', 'Simple'} are available. Default is F1-score
-max_itr = 20                 # maximum number of samples
-report_frq = 10               # frequency to test svm accuracy and print
+max_itr = 1                 # maximum number of samples
+report_frq = 1               # frequency to test svm accuracy and print
 
 # Variable bound
 bounds = []
