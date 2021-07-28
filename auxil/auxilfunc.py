@@ -48,7 +48,7 @@ def check_class(x, case, **kwargs):
     if case == 'benchmark':
         results = []
         for _x in x:
-            results.append(run_benchmark(x, condition))
+            results.append(run_benchmark(_x, condition))
 
         return results
 
@@ -102,11 +102,11 @@ def test(num_test_points, dim, svm_classifier, check_class, case, num_itr_mean =
 
         # check true classification of data point and append to y
         test_y = []
-        for _x in test_X:
-            if case == 'benchmark':
-                test_y.append(check_class(_x, case = case, condition = condition))
-            else:
-                test_y.append(check_class(_x, case = case))
+#        for _x in test_X:
+        if case == 'benchmark':
+            test_y = check_class(test_X, case = case, condition = condition)
+        else:
+            test_y = check_class(test_X, case = case)
                 
         # get prediction of svm classifier
         prediction = svm_classifier.predict(test_X)

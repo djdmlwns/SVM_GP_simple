@@ -11,7 +11,7 @@ from plotting.plots import progress_plot, required_sample, plot_svm_boundary, pl
 
 # %%
 # Benchmark Function Test Main script
-case = 'simulation' # case can be 'benchmark' or 'simulation'
+case = 'benchmark' # case can be 'benchmark' or 'simulation'
 dim = 2 # number of features for benchmark function
 sample_method = 'sobol'
 # Set condition for feasible region  
@@ -20,8 +20,8 @@ sample_method = 'sobol'
 condition = lambda x: Hosaki2d(x) <= -0.5
 
 # Initial samples
-num_samples = 3    # number of initial samples
-# Initializer = Initialization(dim, num_samples, case = case, condition = condition) # Class for initial sampling
+num_samples = 10    # number of initial samples
+Initializer = Initialization(dim, num_samples, case = case, condition = condition) # Class for initial sampling
 
 # Check data feasibility
 # Raise ValueError if only one classification (e.g., only 1 and no -1) is included in the initial sample
@@ -36,20 +36,20 @@ num_samples = 3    # number of initial samples
 #         print('Need to resample') 
 
 
-# X, y = Initializer.sample(sample_method)
+X, y = Initializer.sample(sample_method)
 
 #%%
-X = np.array([[0.5 , 0.5 ],
-       [0.75, 0.25],
-       [0.25, 0.75]])
+# X = np.array([[0.5 , 0.5 ],
+#        [0.75, 0.25],
+#        [0.25, 0.75]])
 
-y = [1, 1, -1]
+# y = [1, 1, -1]
 
 
 max_main_loop = 1             # number of main loop to calculate mean/variance of the svm accuracy of the proposed algorithm -> need for plot
 accuracy_method = 'F1'        # method to calculate svm accuracy {'F1', 'MCC', 'Simple'} are available. Default is F1-score
-max_itr = 1                 # maximum number of samples
-report_frq = 1               # frequency to test svm accuracy and print
+max_itr = 50                # maximum number of samples
+report_frq = 2               # frequency to test svm accuracy and print
 
 # Variable bound
 bounds = []
@@ -69,8 +69,8 @@ for _itr in range(max_main_loop):
     # initialize Active sampling algorithm class 
     AS = ActiveSampling(X, y, SVM_classifier, GP_regressor, bounds, 
                         max_itr = max_itr, case = case, C1=1, accuracy_method = accuracy_method, report_frq = report_frq,
-                        condition = condition, p_check = 0.0, threshold = 1, C1_schedule='None', acq_type = 'f1', cal_norm = True, 
-                        n_optimization=5)
+                        condition = condition, p_check = 0.2, threshold = 1, C1_schedule='None', acq_type = 'f2', cal_norm = True, paralleljob=2,
+                        n_optimization=10)
     # training start
     AS.train()
 
@@ -84,49 +84,49 @@ opt_score_list = (np.array(opt_score_list).T).tolist()
 # SVM trained without using Active sampling algorithm
 # 1) LHS Sampling-based SVM
 
-# Initialize class instance
-# sampling_method = 'lhs'
-SS_LHS = Sampling_based_SVM(X, max_itr = max_itr,
-                        report_frq = report_frq, iteration = 3, sampling_method = 'lhs', accuracy_method = accuracy_method, 
-                        case = case, svm_random_state = 42, condition = condition)
+# # Initialize class instance
+# # sampling_method = 'lhs'
+# SS_LHS = Sampling_based_SVM(X, max_itr = max_itr,
+#                         report_frq = report_frq, iteration = 3, sampling_method = 'lhs', accuracy_method = accuracy_method, 
+#                         case = case, svm_random_state = 42, condition = condition)
 
-# train
-SS_LHS.train()
+# # train
+# SS_LHS.train()
 
-# save the svm accuracy score
-lhs_score_list = SS_LHS.score_list
+# # save the svm accuracy score
+# lhs_score_list = SS_LHS.score_list
 
-# 2) Random Sampling-based SVM
-# Initialize class instance
-# sampling_method = 'random'
-SS_Rand = Sampling_based_SVM(X, max_itr = max_itr, 
-                        report_frq = report_frq, iteration = 3, sampling_method = 'random', accuracy_method = accuracy_method, 
-                        case = case, svm_random_state = 42, condition = condition)
+# # 2) Random Sampling-based SVM
+# # Initialize class instance
+# # sampling_method = 'random'
+# SS_Rand = Sampling_based_SVM(X, max_itr = max_itr, 
+#                         report_frq = report_frq, iteration = 3, sampling_method = 'random', accuracy_method = accuracy_method, 
+#                         case = case, svm_random_state = 42, condition = condition)
 
-# train
-SS_Rand.train()
+# # train
+# SS_Rand.train()
 
-# save the svm accuracy score
-rand_score_list = SS_Rand.score_list
+# # save the svm accuracy score
+# rand_score_list = SS_Rand.score_list
 
 #########################################################################################
 # Plot section
 #########################################################################################
-#%%
-# Plot progress plot 
-# set title (e.g., C1=100 / Score = F1)
-title = 'SampleMethod_' + sample_method + '_Initial_' + str(AS.X_initial.shape[0]) + '_C1_' + str(AS.C1) + '_Score_' + accuracy_method + '_AC_' + AS.acq_type + '_C1_schedule_' + str(AS.C1_schedule)# set title
+# #%%
+# # Plot progress plot 
+# # set title (e.g., C1=100 / Score = F1)
+# title = 'SampleMethod_' + sample_method + '_Initial_' + str(AS.X_initial.shape[0]) + '_C1_' + str(AS.C1) + '_Score_' + accuracy_method + '_AC_' + AS.acq_type + '_C1_schedule_' + str(AS.C1_schedule)# set title
 
-# Plot svm accuracy improvement w.r.t. number of samples
-# Require three score lists of SVM trained by AS/LHS/RANDOM
-progress_plot(num_iter_list= AS.num_iter_list, X_initial = AS.X_initial, opt_score_list=opt_score_list,
-                    lhs_score_list = lhs_score_list, rand_score_list= rand_score_list,
-                    title = title, method = accuracy_method, path = '.')
+# # Plot svm accuracy improvement w.r.t. number of samples
+# # Require three score lists of SVM trained by AS/LHS/RANDOM
+# progress_plot(num_iter_list= AS.num_iter_list, X_initial = AS.X_initial, opt_score_list=opt_score_list,
+#                     lhs_score_list = lhs_score_list, rand_score_list= rand_score_list,
+#                     title = title, method = accuracy_method, path = '.')
 
 
-# Plot required sample numbers in terms of desired accuracy
-required_sample(0.1, 1.0, opt_score_list = opt_score_list, lhs_score_list=lhs_score_list, rand_score_list=rand_score_list, num_iter_list = AS.num_iter_list,
-                        X_initial = X, accuracy_method = accuracy_method, title = title, path = '.')
+# # Plot required sample numbers in terms of desired accuracy
+# required_sample(0.1, 1.0, opt_score_list = opt_score_list, lhs_score_list=lhs_score_list, rand_score_list=rand_score_list, num_iter_list = AS.num_iter_list,
+#                         X_initial = X, accuracy_method = accuracy_method, title = title, path = '.')
 
 #%%
 
@@ -138,13 +138,5 @@ if dim == 2:
 # Plot SVM boundary of the proposed algorithm if needed only for 2-D
 if dim == 2:
     plot_svm_boundary(AS.SVM_classifier, AS.X, AS.y)
-
-# %%
-import pandas as pd
-import matplotlib.pyplot as plt
-
-df = pd.DataFrame(AS.distance).expanding().mean()
-plt.plot(df)
-
 
 # %% 

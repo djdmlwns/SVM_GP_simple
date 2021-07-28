@@ -87,8 +87,8 @@ class Initialization():
             raise ValueError('No such method')
 
         if self.case == 'benchmark':
-            for _X in X:
-                y.append(check_class(_X, case = self.case, condition=self.condition))
+            y = check_class(X, case = self.case, condition = self.condition)
+        # for simulation
         else:
             y = check_class(X, case = self.case) 
 

@@ -97,11 +97,10 @@ class Sampling_based_SVM():
 
                 # check class of data points
                 y = []
-                for _X in X:
-                    if self.case == 'benchmark':
-                        y.append(check_class(_X, self.case, condition =  self.condition))
-                    else:
-                        y.append(check_class(_X, self.case))
+                if self.case == 'benchmark':
+                    y = check_class(X, self.case, condition =  self.condition)
+                else:
+                    y = check_class(X, self.case)
                         
                 # Initial setting
                 svm_classifier = svm.SVC(kernel='rbf', C = 10000, random_state = self.svm_random_state)

@@ -137,30 +137,49 @@ class ActiveSampling():
                 
                 self.C_lst.append(self.GP_regressor.kernel_.get_params()['k1__constant_value'])
                 # Find the next sampling point
+                # If paralleljob is greater than 1, multiple samples are obtained as numpy array
                 new_x_arr, new_fun_arr = self.optimize_acquisition(numofpoints=self.paralleljob)
 
-                # Check whether there is a close point. If there is a close point, the sample is not added to the list
+                # Check whether there is a close point for each new sample. 
+                # If there is a close point, the sample is not added to the list and resampled
                 # Run up-to five times to find different points
                 new_x_arr_copy = deepcopy(new_x_arr)
-                for idx, new_x in enumerate(new_x_arr_copy):
-                    for _itr in range(5): 
+                flag = []
+
+                for idx, (new_x, new_fun) in enumerate(zip(new_x_arr_copy, new_fun_arr)):
+                    for _itr in range(6): 
                         if self.check_close_points(new_x):
                             if self.verbose:
-                                print('There is a similar point')
-                                print('Iteration {0} : point x value is {1} but not added'.format(iter, new_x))
-                                
-                            # Resample
-                            new_x, new_fun = self.optimize_acquisition()     
+                                if self.log:
+                                    print('Iteration {0} : point {1} has a similar point so resampled'.format(iter, new_x), file = f)
+                                else:
+                                    print('Iteration {0} : point {1} has a similar point so resampled'.format(iter, new_x))
+                            # Resample one point (not parallel)
+                            _new_x, new_fun = self.optimize_acquisition()
+                            new_x = _new_x[0]     
+
+                            # If it is the end of the loop, we will not use this point
+                            if _itr == 5:
+                                flag.append(False)   
+                                if self.verbose:
+                                    if self.log:
+                                        print('Iteration {0} : point {1} is not added'.format(iter, new_x), file = f)
+                                    else:
+                                        print('Iteration {0} : point {1} is not added'.format(iter, new_x))
+                                                             
+                            # back to loop to check close points                            
+                            continue
+                        
+                        # If there is no close point
+                        else:
+                            # change to new value
                             new_x_arr[idx] = new_x
                             new_fun_arr[idx] = new_fun
-
-                            # back to loop
-                            continue   
-
-                        else:
+                            flag.append(True)
                             # Add new_x to the training data
                             self.X = np.vstack([self.X, new_x])
                         
+                            # Collect samples that are selected by optimization
                             # If new_point is empty
                             if self.new_points.shape[0] == 0 :
                                 self.new_points = np.atleast_2d(new_x)
@@ -177,13 +196,34 @@ class ActiveSampling():
                                     print('Iteration {0} : Added point x value is {1} and function value is {2:2.2E}\n'.format(iter, new_x, new_fun_arr[idx]))
                             break
 
+                        # # If cannot find other solutions even with 10 iteration, just save the solution 
+                        # self.X = np.vstack([self.X, new_x])
+                    
+                        # # Collect samples that are selected by optimization
+                        # # If new_point is empty
+                        # if self.new_points.shape[0] == 0 :
+                        #     self.new_points = np.atleast_2d(new_x)
+                        # # If new_point is not empty, stack the new point
+                        # else:
+                        #     self.new_points = np.vstack([self.new_points, new_x])
+
+                        # # Print
+                        # if self.verbose:
+                        #     np.set_printoptions(precision=3, suppress=True)
+                        #     if self.log:
+                        #         print('Iteration {0} : Added point x value is {1} and function value is {2:2.2E}\n'.format(iter, new_x, new_fun_arr[idx]), file=f)
+                        #     else:
+                        #         print('Iteration {0} : Added point x value is {1} and function value is {2:2.2E}\n'.format(iter, new_x, new_fun_arr[idx]))
+                        # break                    
+
+
                 # check classification of new_x and append to y
                 if self.case == 'benchmark':
                     # check with benchmark function value
-                    self.y = self.y + check_class(new_x_arr, self.case, condition = self.condition)
+                    self.y = self.y + check_class(new_x_arr[flag], self.case, condition = self.condition)
                 else:
                     # check with simulation
-                    self.y = self.y + check_class(new_x_arr, self.case)
+                    self.y = self.y + check_class(new_x_arr[flag], self.case)
 
                 # Test svm and append score and iteration number to list
                 # Only possible for benchmark function (Not possible for simulation)
@@ -251,11 +291,11 @@ class ActiveSampling():
         # this is to check the points inside our feasible region determined by SVM machine
         else: 
             for _i in range(self.n_optimization):
-                # constraint = NonlinearConstraint(lambda x : self.value_prediction_svm(x)[0], lb = self.threshold, ub = np.inf, jac = '2-point')
-                # obj = lambda x : -self.GP_regressor.predict(np.atleast_2d(x), return_std= True)[1][0]
-                # opt = minimize(obj, x0 = np.random.rand(self.dim), constraints = constraint, method = "SLSQP", bounds = self.bounds)
-                obj = lambda x : - (self.value_prediction_svm(x))[0] - self.GP_regressor.predict(np.atleast_2d(x), return_std= True)[1][0]
-                opt = minimize(obj, x0 = np.random.rand(self.dim), method = "L-BFGS-B", bounds=self.bounds)
+                constraint = NonlinearConstraint(lambda x : self.value_prediction_svm(x)[0], lb = self.threshold, ub = np.inf, jac = '2-point')
+                obj = lambda x : -self.GP_regressor.predict(np.atleast_2d(x), return_std= True)[1][0]
+                opt = minimize(obj, x0 = np.random.rand(self.dim), constraints = constraint, method = "SLSQP", bounds = self.bounds)
+                # obj = lambda x : - (self.value_prediction_svm(x))[0] - self.GP_regressor.predict(np.atleast_2d(x), return_std= True)[1][0]
+                # opt = minimize(obj, x0 = np.random.rand(self.dim), method = "L-BFGS-B", bounds=self.bounds)
 
                 opt_x.append(opt.x)
                 opt_fun.append(opt.fun)
