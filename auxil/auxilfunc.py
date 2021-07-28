@@ -8,12 +8,15 @@ from auxil.simulation import Simulation
 def check_class(x, case, **kwargs):
     ''' check classification of data x 
     #####################################
-    Input: 
+    Input: x (numpy ndarray)
     
     case : {'benchmark', 'simulation'}
 
     **kwargs :{'condition'} should include feasibility constraint if case == benchmark
 
+    Output:
+    
+    y: list
     ######################################
     
     '''
@@ -30,11 +33,11 @@ def check_class(x, case, **kwargs):
         sim = Simulation(x)
         y = sim.run()
 
-        if len(y) == 1:
-            return y[0]
-        # directly get the list of y
-        else:    
-            return y
+        # if len(y) == 1:
+        #     return y[0]
+        # # directly get the list of y
+        # else:    
+        return y
 
     def run_benchmark(x, condition):
         if condition(x): 
@@ -43,7 +46,11 @@ def check_class(x, case, **kwargs):
             return -1 # negative class (considered infeasible)        
 
     if case == 'benchmark':
-        return run_benchmark(x, condition)
+        results = []
+        for _x in x:
+            results.append(run_benchmark(x, condition))
+
+        return results
 
     elif case == 'simulation':
         return run_simulation(x)

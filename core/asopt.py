@@ -15,7 +15,7 @@ from copy import deepcopy
 #############################################################################################################
 class ActiveSampling():
     def __init__(self, X_initial, y_initial, SVM_classifier, GP_regressor, bounds, 
-                max_itr = 300, verbose = True, C1 = 100, p_check = 0.1, threshold = 1, n_optimization = 10, case = 'benchmark', 
+                max_itr = 300, verbose = True, C1 = 100, p_check = 0.1, threshold = 1, n_optimization = 10, paralleljob = 1, case = 'benchmark', 
                 report_frq = 5, accuracy_method = 'F1', C1_schedule = None, acq_type = 'f1', log = False, cal_norm = False, **kwargs):
 
         '''
@@ -40,6 +40,8 @@ class ActiveSampling():
         threshold : threshold on g(x) (g(x) > threshold) when solving constrained problem
 
         n_optimization : number of re-initialization for acquisition function optimization
+
+        paralleljob : number of sampling points that are added in each iteration 
 
         case : {'benchmark', 'simulation'}
 
@@ -76,6 +78,7 @@ class ActiveSampling():
         self.C1_schedule = C1_schedule
         self.acq_type = acq_type
         self.log = log
+        self.paralleljob = paralleljob
 
         self.X = X_initial
         self.y = y_initial.copy()
@@ -134,50 +137,53 @@ class ActiveSampling():
                 
                 self.C_lst.append(self.GP_regressor.kernel_.get_params()['k1__constant_value'])
                 # Find the next sampling point
-                new_x, new_fun = self.optimize_acquisition()
+                new_x_arr, new_fun_arr = self.optimize_acquisition(numofpoints=self.paralleljob)
 
                 # Check whether there is a close point. If there is a close point, the sample is not added to the list
                 # Run up-to five times to find different points
-                for _itr in range(5): 
-                    if self.check_close_points(new_x):
-                        if self.verbose:
-                            print('There is a similar point')
-                            print('Iteration {0} : point x value is {1} but not added'.format(iter, new_x))
-                            
-                        # Resample
-                        new_x, new_fun = self.optimize_acquisition()     
+                new_x_arr_copy = deepcopy(new_x_arr)
+                for idx, new_x in enumerate(new_x_arr_copy):
+                    for _itr in range(5): 
+                        if self.check_close_points(new_x):
+                            if self.verbose:
+                                print('There is a similar point')
+                                print('Iteration {0} : point x value is {1} but not added'.format(iter, new_x))
+                                
+                            # Resample
+                            new_x, new_fun = self.optimize_acquisition()     
+                            new_x_arr[idx] = new_x
+                            new_fun_arr[idx] = new_fun
 
-                        # back to loop
-                        continue   
+                            # back to loop
+                            continue   
 
-                    else:
-                        # Add new_x to the training data
-                        self.X = np.vstack([self.X, new_x])
-                    
-                        # If new_point is empty
-                        if self.new_points.shape[0] == 0 :
-                            self.new_points = np.atleast_2d(new_x)
-                        # If new_point is not empty, stack the new point
                         else:
-                            self.new_points = np.vstack([self.new_points, new_x])
-
-                        # check classification of new_x and append to y
-                        if self.case == 'benchmark':
-                            # check with benchmark function value
-                            self.y.append(check_class(new_x, self.case, condition = self.condition))
-                        else:
-                            # check with simulation
-                            print(new_x)
-                            self.y.append(check_class(new_x, self.case))
-
-                        # Print
-                        if self.verbose:
-                            np.set_printoptions(precision=3, suppress=True)
-                            if self.log:
-                                print('Iteration {0} : Added point x value is {1} and function value is {2:2.2E}\n'.format(iter, new_x, new_fun), file=f)
+                            # Add new_x to the training data
+                            self.X = np.vstack([self.X, new_x])
+                        
+                            # If new_point is empty
+                            if self.new_points.shape[0] == 0 :
+                                self.new_points = np.atleast_2d(new_x)
+                            # If new_point is not empty, stack the new point
                             else:
-                                print('Iteration {0} : Added point x value is {1} and function value is {2:2.2E}\n'.format(iter, new_x, new_fun))
-                        break
+                                self.new_points = np.vstack([self.new_points, new_x])
+
+                            # Print
+                            if self.verbose:
+                                np.set_printoptions(precision=3, suppress=True)
+                                if self.log:
+                                    print('Iteration {0} : Added point x value is {1} and function value is {2:2.2E}\n'.format(iter, new_x, new_fun_arr[idx]), file=f)
+                                else:
+                                    print('Iteration {0} : Added point x value is {1} and function value is {2:2.2E}\n'.format(iter, new_x, new_fun_arr[idx]))
+                            break
+
+                # check classification of new_x and append to y
+                if self.case == 'benchmark':
+                    # check with benchmark function value
+                    self.y = self.y + check_class(new_x_arr, self.case, condition = self.condition)
+                else:
+                    # check with simulation
+                    self.y = self.y + check_class(new_x_arr, self.case)
 
                 # Test svm and append score and iteration number to list
                 # Only possible for benchmark function (Not possible for simulation)
@@ -222,7 +228,7 @@ class ActiveSampling():
             raise ValueError('No such objective function form')
         
 
-    def optimize_acquisition(self):
+    def optimize_acquisition(self, numofpoints=1):
         '''optimize acquisition function'''
         opt_x = [] # optimal X list
         opt_fun = [] # optimal function value list
@@ -254,16 +260,29 @@ class ActiveSampling():
                 opt_x.append(opt.x)
                 opt_fun.append(opt.fun)
         
-        # Take the minimum value
-        new_fun = min(opt_fun)
+        # Convert list to np array for sorting
+        arr_opt_x = np.array(opt_x)
+        arr_opt_fun = np.array(opt_fun)
+        
+        # Get sorted index based on function value
+        sorted_indx = np.argsort(arr_opt_fun)
+
+        # Sort array using sorted index
+        new_fun = arr_opt_fun[sorted_indx][0:numofpoints]
+        new_x = arr_opt_x[sorted_indx][0:numofpoints]
+
+#        new_fun = min(opt_fun)
         
         # Find the corresponding X for the minimum value
-        new_x = opt_x[np.argmin(opt_fun)]
+#        new_x = opt_x[np.argmin(opt_fun)]
 
-        del opt_x
-        del opt_fun
+        # multiple values are allowed
         
-        return new_x, new_fun
+
+#        del opt_x
+#        del opt_fun
+        
+        return new_x, new_fun # now it becomes array
 
 
     def value_prediction_svm(self, x):    
